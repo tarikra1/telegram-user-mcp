@@ -1,3 +1,4 @@
+import os
 import json
 import sys
 import types as pytypes
@@ -19,25 +20,28 @@ except ModuleNotFoundError:
 try:
     import mcp.server.mcpserver  # noqa: F401
 except ModuleNotFoundError:
-    stub_mcp = pytypes.ModuleType("mcp")
-    stub_srv = pytypes.ModuleType("mcp.server")
-    stub_msrv = pytypes.ModuleType("mcp.server.mcpserver")
+    try:
+        import mcp.server.fastmcp  # noqa: F401
+    except ModuleNotFoundError:
+        stub_mcp = pytypes.ModuleType("mcp")
+        stub_srv = pytypes.ModuleType("mcp.server")
+        stub_msrv = pytypes.ModuleType("mcp.server.mcpserver")
 
-    class _DummyMCPServer:
-        def __init__(self, name: str, **kwargs):
-            self.name = name
-            self.registered_tools = []
+        class _DummyMCPServer:
+            def __init__(self, name: str, **kwargs):
+                self.name = name
+                self.registered_tools = []
 
-        def tool(self):
-            def _decorator(fn):
-                self.registered_tools.append(fn.__name__)
-                return fn
-            return _decorator
+            def tool(self):
+                def _decorator(fn):
+                    self.registered_tools.append(fn.__name__)
+                    return fn
+                return _decorator
 
-    stub_msrv.MCPServer = _DummyMCPServer
-    sys.modules["mcp"] = stub_mcp
-    sys.modules["mcp.server"] = stub_srv
-    sys.modules["mcp.server.mcpserver"] = stub_msrv
+        stub_msrv.MCPServer = _DummyMCPServer
+        sys.modules["mcp"] = stub_mcp
+        sys.modules["mcp.server"] = stub_srv
+        sys.modules["mcp.server.mcpserver"] = stub_msrv
 
 try:
     import telethon  # noqa: F401
@@ -54,7 +58,7 @@ except ModuleNotFoundError:
     sys.modules["telethon.errors"] = stub_tl_err
 
 from telegram_user_mcp.cli import _parse_args, _parse_val
-from telegram_user_mcp.server import _format_message, _json_out, mcp
+from telegram_user_mcp.server import _format_message, _is_read_only, _json_out, _require_write_permission, mcp
 
 
 class TestCliParser(unittest.TestCase):
@@ -115,6 +119,22 @@ class TestMessageFormattingAndServer(unittest.TestCase):
 
     def test_mcp_server_name_registered(self) -> None:
         self.assertEqual(mcp.name, "telegram")
+
+    def test_read_only_guard_blocks_mutations(self) -> None:
+        old = os.environ.get("TELEGRAM_READ_ONLY")
+        try:
+            os.environ["TELEGRAM_READ_ONLY"] = "true"
+            self.assertTrue(_is_read_only())
+            with self.assertRaises(PermissionError):
+                _require_write_permission("delete_messages")
+            os.environ["TELEGRAM_READ_ONLY"] = "false"
+            self.assertFalse(_is_read_only())
+            _require_write_permission("delete_messages")
+        finally:
+            if old is None:
+                os.environ.pop("TELEGRAM_READ_ONLY", None)
+            else:
+                os.environ["TELEGRAM_READ_ONLY"] = old
 
 
 if __name__ == "__main__":

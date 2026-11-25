@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "telegram-user-mcp"
-version = "0.2.0"
-description = "Async Model Context Protocol (MCP) server & CLI for personal Telegram MTProto accounts with zero-lock session pooling."
+version = "0.3.0"
+description = "Async Model Context Protocol (MCP) server & CLI for personal Telegram MTProto accounts with zero-lock session pooling and read-only safety mode."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
@@ -33,6 +33,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/tarikra1/telegram-user-mcp"
 Repository = "https://github.com/tarikra1/telegram-user-mcp"
+Changelog = "https://github.com/tarikra1/telegram-user-mcp/blob/main/CHANGELOG.md"
 Issues = "https://github.com/tarikra1/telegram-user-mcp/issues"
 
 [project.scripts]

@@ -8,7 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from mcp.server.mcpserver import MCPServer
+
+try:
+    from mcp.server.mcpserver import MCPServer
+except ImportError:
+    from mcp.server.fastmcp import FastMCP as MCPServer
+
 from telethon import TelegramClient, functions, types
 from telethon.errors import (
     PhoneCodeExpiredError,
@@ -40,6 +45,17 @@ _client: TelegramClient | None = None
 _client_lock = asyncio.Lock()
 _idle_task: asyncio.Task | None = None
 _pending_auth: dict[str, str] = {}
+
+
+def _is_read_only() -> bool:
+    return os.getenv("TELEGRAM_READ_ONLY", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _require_write_permission(action: str) -> None:
+    if _is_read_only():
+        raise PermissionError(
+            f"Operation '{action}' is blocked because TELEGRAM_READ_ONLY is enabled."
+        )
 
 
 def _json_out(payload: Any) -> str:
@@ -82,7 +98,7 @@ async def _get_client() -> TelegramClient:
                         API_HASH,
                         device_model=os.getenv("TELEGRAM_DEVICE_MODEL", "Telegram User MCP"),
                         system_version=os.getenv("TELEGRAM_SYSTEM_VERSION", "MCP Host"),
-                        app_version="0.2.0",
+                        app_version="0.3.0",
                     )
                 if not _client.is_connected():
                     await _client.connect()
@@ -220,6 +236,7 @@ async def auth_status() -> str:
         return _json_out(
             {
                 "authorized": False,
+                "read_only": _is_read_only(),
                 "default_phone": DEFAULT_PHONE,
                 "hint": "Call auth_send_code() to receive a login code in Telegram, then auth_verify_code(code=...).",
             }
@@ -228,6 +245,7 @@ async def auth_status() -> str:
     return _json_out(
         {
             "authorized": True,
+            "read_only": _is_read_only(),
             "id": me.id,
             "first_name": me.first_name,
             "last_name": me.last_name,
@@ -623,6 +641,7 @@ async def send_message(
     Send a text message to a user, group, channel, or 'me' (Saved Messages).
     parse_mode: 'md' (Markdown), 'html', or 'none'.
     """
+    _require_write_permission("send_message")
     client = await _require_authorized_client()
     entity = await _resolve_entity(client, target)
     pm: str | None = parse_mode.lower()
@@ -654,6 +673,7 @@ async def send_file(
     reply_to_msg_id: int = 0,
 ) -> str:
     """Upload and send a local file, image, video, or document to a Telegram chat or 'me'."""
+    _require_write_permission("send_file")
     client = await _require_authorized_client()
     p = Path(file_path).expanduser().resolve()
     if not p.is_file():
@@ -716,6 +736,7 @@ async def forward_messages(
     message_ids: list[int],
 ) -> str:
     """Forward one or more messages from one chat to another (e.g. to 'me' Saved Messages)."""
+    _require_write_permission("forward_messages")
     client = await _require_authorized_client()
     src = await _resolve_entity(client, from_target)
     dst = await _resolve_entity(client, to_target)
@@ -735,6 +756,7 @@ async def forward_messages(
 @mcp.tool()
 async def edit_message(target: str, message_id: int, new_text: str) -> str:
     """Edit the text of a message you previously sent."""
+    _require_write_permission("edit_message")
     client = await _require_authorized_client()
     entity = await _resolve_entity(client, target)
     edited = await client.edit_message(entity, message_id, new_text)
@@ -754,6 +776,7 @@ async def delete_messages(
     revoke: bool = True,
 ) -> str:
     """Delete one or more messages in a chat."""
+    _require_write_permission("delete_messages")
     client = await _require_authorized_client()
     entity = await _resolve_entity(client, target)
     await client.delete_messages(entity, message_ids, revoke=revoke)
@@ -778,6 +801,7 @@ async def mark_as_read(target: str) -> str:
 @mcp.tool()
 async def pin_message(target: str, message_id: int, notify: bool = False) -> str:
     """Pin a message in a chat/group/channel."""
+    _require_write_permission("pin_message")
     client = await _require_authorized_client()
     entity = await _resolve_entity(client, target)
     await client.pin_message(entity, message_id, notify=notify)
