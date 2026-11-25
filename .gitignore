@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments & packaging
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Secrets & local session state
+.env
+.env.*
+!.env.example
+data/
+*.session
+*.session-journal
+
+# Test / IDE caches
+.pytest_cache/
+.ruff_cache/
+.vscode/
+.idea/

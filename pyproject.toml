@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "telegram-user-mcp"
+version = "0.2.0"
+description = "Async Model Context Protocol (MCP) server & CLI for personal Telegram MTProto accounts with zero-lock session pooling."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Tarik", email = "tarikra1@users.noreply.github.com" }
+]
+keywords = ["mcp", "telegram", "telethon", "mtproto", "ai-agents", "claude", "llm-tools"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Communications :: Chat",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+dependencies = [
+  "mcp>=1.2.0",
+  "telethon>=1.36.0",
+  "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/tarikra1/telegram-user-mcp"
+Repository = "https://github.com/tarikra1/telegram-user-mcp"
+Issues = "https://github.com/tarikra1/telegram-user-mcp/issues"
+
+[project.scripts]
+telegram-user-mcp = "telegram_user_mcp.server:main"
+telegram-mcp-cli = "telegram_user_mcp.cli:main"
+telegram-mcp-auth = "telegram_user_mcp.auth_waiter:cli_main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
